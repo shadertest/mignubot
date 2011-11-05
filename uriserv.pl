@@ -59,7 +59,7 @@ while (<$socket>) {
                         if (/https?:\/\//) {
                                 print $_."\n";
                                 s/(\x03(?:\d{1,2}(?:,\d{1,2})?)?|\x02|\x1f|\x0f|x16)//g;
-                                my $ua = new LWP::UserAgent(agent => "Mozilla/5.0 (Perl; Linux x86_64; rv:1.7) Gecko/20110808 IRCNeko/1.7");
+                                my $ua = new LWP::UserAgent(agent => "Mozilla/5.0 (Perl; Linux x86_64; rv:1.7) Gecko/20110808 mignubot/1.7");
                                 my $response = $ua->head("$_");
                                 my $type = $response->header('Content-Type');
                                 my $length = $response->header('Content-Length');
