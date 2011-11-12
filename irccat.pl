@@ -16,10 +16,10 @@ use vars qw(%options);
     debug => 1,
     fifoin => "input",
     fifoout => "output",
-    server => "irc6.rizon.net:6667",
+    server => "irc.rizon.net:6697",
     nickname => "MiGNUBot",
     username => "MikuBot", # identd will override this
-    ssl_key => "/home/shadertest/mocbat.key",
+    ssl_key => undef,
     ssl_cert => undef,
 );
 
@@ -44,19 +44,11 @@ sysopen(my $output, $options{fifoout}, O_RDWR | O_NONBLOCK)
 print "\e[32m[DONE]\e[0m\n";
 
 print "\e[32m*\e[0m Connecting to $options{server}... ";
-my $irc;
-if ($options{ssl_cert}) {
-    print "SSL"; 
-    $irc = new IO::Socket::SSL(Proto => 'tcp',
-                                  PeerAddr => $options{server},
-                                  SSL_use_cert => 1,
-                                  SSL_key_file => $options{ssl_key},
-                                  SSL_cert_file => $options{ssl_cert}); 
-} else {
-    print "No SSL";
-    $irc = new IO::Socket::INET6(Proto => 'tcp',
-                                    PeerAddr => $options{server});
-}
+my $irc = new IO::Socket::SSL(Proto => 'tcp',
+                              PeerAddr => $options{server},
+                              SSL_use_cert => defined $options{ssl_cert},
+                              SSL_key_file => $options{ssl_key},
+                              SSL_cert_file => $options{ssl_cert});
 die "\e[31m[FAIL]\n $! ($@)\e[0m" unless ($irc);
 print "\e[32m[DONE]\e[0m\n";
 
