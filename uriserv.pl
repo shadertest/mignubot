@@ -41,7 +41,7 @@ sub convertBytes {
 
 sub getTitle {
     my $uri = shift;
-    s/(\x03(?:\d{1,2}(?:,\d{1,2})?)?|\x02|\x1f|\x0f|x16)//g;
+    $uri =~ s/(\x03(?:\d{1,2}(?:,\d{1,2})?)?|\x02|\x1f|\x0f|x16)//g;
     my $response = $ua->head($uri);
     my $type = $response->header('Content-Type');
     my $length = $response->header('Content-Length');
