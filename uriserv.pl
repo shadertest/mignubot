@@ -6,28 +6,24 @@ use 5.010;
 use diagnostics;
 
 use POSIX qw(setsid);
+use IO::Socket::UNIX;
+
 use LWP::UserAgent;
 use HTML::HeadParser;
-use Fcntl;
-use IO::Select;
 use LWP::Protocol::https;
 
 use vars qw(%options);
 
 %options = (
     debug => 1,
-    fifoout => "input",
-    fifoin => "output"
+    unixsocket => "socket",
 );
 
 my $ua = new LWP::UserAgent(agent => "Mozilla/5.0 (X11; Linux x86_64; rv:11.0a1) Gecko/20111111 Firefox/11.0a1");
 
-sysopen(my $input, $options{fifoin}, O_RDONLY | O_NONBLOCK)
-    or die "\e[31m[FAIL]\n $! ($@)\e[0m";
-sysopen(my $output, $options{fifoout}, O_RDWR | O_NONBLOCK)
-    or die "\e[31m[FAIL]\n $! ($@)\e[0m";
-my $select = new IO::Select($input, $output);
-
+my $socket = new IO::Socket::UNIX(Type => SOCK_STREAM,
+                                  Peer => $options{unixsocket});
+                                  
 sub convertBytes {
     my ($bytes) = @_;
     if ($bytes > 1048576) {
@@ -49,6 +45,7 @@ sub getTitle {
     if ($type =~ m/text\/html/) {
         return "\0034ERROR: File too large\003" if ($length > 6291456);
         my $p = HTML::HeadParser->new;
+        $ua->max_size(10240);
         $response = $ua->get($uri);
         $p->parse($response->decoded_content);
         my $title = $p->header('Title');
@@ -67,7 +64,7 @@ sub getTitles {
         s/^://;
         if (/https?:\/\//) {
             my $title = &getTitle($_);
-            syswrite($output, "PRIVMSG $channel :$title\n") if ($title);             
+            syswrite($socket, "PRIVMSG $channel :$title\n") if ($title);             
         }
     }  
 }
@@ -84,15 +81,9 @@ unless ($options{debug}) {
 
 
 until ($SIG{INT}) {
-    my @files = $select->can_read(1);
-    for (@files) {
-        if (fileno($_) == fileno($input)) {
-            sysread($input, $_, 8192);
-            if (/PRIVMSG (\S+)/) {
-                print "msg\n";
-                &getTitles($1, split)
-            }
-        }
+    sysread($socket, $_, 1024);
+    if (/PRIVMSG (\S+)/) {
+        &getTitles($1, split)
     }
 }
 

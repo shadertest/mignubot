@@ -6,30 +6,27 @@ use 5.010;
 use diagnostics;
 
 use POSIX qw(setsid);
+use IO::Socket::UNIX;
+
+
 use LWP;
 use XML::Simple;
 use URI::Escape;
 use JSON;
 use HTML::Entities;
-use Fcntl;
-use IO::Select;
 use LWP::Protocol::https;
 
 use vars qw(%options);
 
 %options = (
     debug => 1,
-    fifoout => "input",
-    fifoin => "output"
+    unixsocket => "socket",
 );
 
 my $ua = LWP::UserAgent->new();
 
-sysopen(my $input, $options{fifoin}, O_RDONLY | O_NONBLOCK)
-    or die "\e[31m[FAIL]\n $! ($@)\e[0m";
-sysopen(my $output, $options{fifoout}, O_RDWR | O_NONBLOCK)
-    or die "\e[31m[FAIL]\n $! ($@)\e[0m";
-my $select = new IO::Select($input, $output);
+my $socket = new IO::Socket::UNIX(Type => SOCK_STREAM,
+                                  Peer => $options{unixsocket});
 
 sub metar {
     my $icao = shift;
@@ -55,23 +52,6 @@ sub weather {
         if (@current);
 }
 
-sub translate {
-    ##########
-    # WILL NOT BE FUNCTIONAL COME 01/12/2011
-    ##########
-    my ($source, $target, $text) = @_;
-    $text = uri_escape($text);
-    my $response = $ua->get(
-        "https://www.googleapis.com/language/translate/v2?key=AIzaSyAzwvM58m2a-iWcvVdwPkpuMRiYI9Mv6-k&q=$text&source=$source&target=$target");
-    my $data = $response->decoded_content;
-    my $json_data = decode_json($data);
-    my $translated = $json_data->{'data'}{'translations'}[0]{'translatedText'};
-    $translated = decode_entities($translated);
-    return "[$source=>$target] $translated";
-}
-
-
-
 unless ($options{debug}) {
     my $pid = fork();
     exit(1) if (! defined($pid));
@@ -83,22 +63,14 @@ unless ($options{debug}) {
 }
 
 until ($SIG{INT}) {
-    my @files = $select->can_read(1);
-    for (@files) {
-        if (fileno($_) == fileno($input)) {
-            sysread($input, $_, 8192);
-            if (/PRIVMSG (\S+)/) {
-                my $channel = $1;
-                if (/,me(tar)? (.+)/) {
-                    syswrite($output, "PRIVMSG $channel :". &metar($2) ."\n");
-                } elsif (/,we(ather)? (.+)/) {
-                    syswrite($output, "PRIVMSG $channel :". &weather($2) ."\n");
-                } elsif (/,tr(anslate)? (\w\w)( |\|)(\w\w) (.+)/) {
-                    syswrite($output, "PRIVMSG $channel :". &translate($2, $4, $5) ."\n");
-                }
-            }
+    sysread($socket, $_, 1024);
+    if (/PRIVMSG (\S+)/) {
+        my $channel = $1;
+        if (/,me(tar)? (.+)/) {
+            syswrite($socket, "PRIVMSG $channel :". &metar($2) ."\n");
+        } elsif (/,we(ather)? (.+)/) {
+            syswrite($socket, "PRIVMSG $channel :". &weather($2) ."\n");
         }
     }
 }
-
 
