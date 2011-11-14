@@ -7,6 +7,7 @@ use diagnostics;
 
 use POSIX qw(setsid);
 use IO::Socket::UNIX;
+use Encode;
 
 use LWP::UserAgent;
 use HTML::HeadParser;
@@ -64,6 +65,7 @@ sub getTitles {
         s/^://;
         if (/https?:\/\//) {
             my $title = &getTitle($_);
+            $title = encode("utf8", $title);
             syswrite($socket, "PRIVMSG $channel :$title\n") if ($title);             
         }
     }  
