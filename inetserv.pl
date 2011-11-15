@@ -63,7 +63,9 @@ unless ($options{debug}) {
 }
 
 until ($SIG{INT}) {
-    sysread($socket, $_, 1024);
+    my $read = sysread($socket, $_, 1024);
+    die unless (defined $read);
+    die unless ($read);
     if (/PRIVMSG (\S+)/) {
         my $channel = $1;
         if (/,me(tar)? (.+)/) {

@@ -83,7 +83,9 @@ unless ($options{debug}) {
 
 
 until ($SIG{INT}) {
-    sysread($socket, $_, 1024);
+    my $read = sysread($socket, $_, 1024);
+    die unless (defined $read);
+    die unless ($read);
     if (/PRIVMSG (\S+)/) {
         &getTitles($1, split)
     }
