@@ -8,7 +8,6 @@ use diagnostics;
 use POSIX qw(setsid);
 use IO::Socket::UNIX;
 
-
 use LWP;
 use XML::Simple;
 use URI::Escape;
@@ -16,12 +15,9 @@ use JSON;
 use HTML::Entities;
 use LWP::Protocol::https;
 
-use vars qw(%options);
-
-%options = (
-    debug => 1,
-    unixsocket => "socket",
-);
+my %options = do "rc.pl";
+die "\e[31m[FAIL] Could not parse rc.pl: $@\n" if ($@);
+die "\e[31m[FAIL] Could not open rc.pl: $!\n" unless (%options);
 
 my $ua = LWP::UserAgent->new();
 

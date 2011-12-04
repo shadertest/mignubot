@@ -6,30 +6,23 @@ use 5.010;
 use diagnostics;
 
 use POSIX qw(setsid);
-use IO::Socket::SSL;
 use IO::Socket::UNIX;
 use IO::Select;
-use Fcntl;
 
-use vars qw(%options);
-
-%options = (
-    debug => 1,
-    unixsocket => "socket",
-    server => "irc.rizon.net:6697",
-    nickname => "MiGNUBot",
-    username => "MikuBot", # identd will override this
-    ssl_key => undef,
-    ssl_cert => undef,
-);
-
-
+use IO::Socket::SSL;
 
 print "\e[32m*\e[0m MiGNUBot newipc 3 by shadertest\n";
 print "\e[32m*\e[0m Based off irccat by mut80r/Aaron\n";
 print "\e[32m*\e[0m Licensed under the terms of the GNU GPL version 3\n";
 
 ### START INIT
+print "\e[32m*\e[0m Loading config file... ";
+my %options = do "rc.pl";
+die "\e[31m[FAIL] Could not parse rc.pl: $@\n" if ($@);
+die "\e[31m[FAIL] Could not open rc.pl: $!\n" unless (%options);
+print "\e[32m[DONE]\e[0m\n";
+
+
 print "\e[32m*\e[0m Opening UNIX Socket... ";
 unlink $options{unixsocket} if (-e $options{unixsocket});
 my $socket = new IO::Socket::UNIX(Type => SOCK_STREAM,
@@ -84,6 +77,9 @@ until ($SIG{INT}) {
             die "$! ($@)" unless (defined $read);
             die "$! ($@)" unless ($read);
             syswrite($irc, "PONG :$1\n") if ($line =~ /PING :([\w\.]+)/);
+            syswrite($irc, "NOTICE $1 :\001VERSION MiGNUBot:git:GNU/Linux Source: https://github.com/shadertest/mignubot\001\n")
+                if ($line =~ /:(.+)!.+PRIVMSG.+:\001VERSION\001/);
+            
             broadcast($line);
         } else {
             my $read = sysread($_, my $line, 1024);

@@ -13,14 +13,12 @@ use LWP::UserAgent;
 use HTML::HeadParser;
 use LWP::Protocol::https;
 
-use vars qw(%options);
+my %options = do "rc.pl";
+die "\e[31m[FAIL] Could not parse rc.pl: $@\n" if ($@);
+die "\e[31m[FAIL] Could not open rc.pl: $!\n" unless (%options);
 
-%options = (
-    debug => 1,
-    unixsocket => "socket",
-);
-
-my $ua = new LWP::UserAgent(agent => "Mozilla/5.0 (X11; Linux x86_64; rv:11.0a1) Gecko/20111111 Firefox/11.0a1");
+my $ua = new LWP::UserAgent(agent =>
+                                "Mozilla/5.0 (X11; Linux x86_64; rv:11.0a1) Gecko/20111111 Firefox/11.0a1");
 
 my $socket = new IO::Socket::UNIX(Type => SOCK_STREAM,
                                   Peer => $options{unixsocket});
