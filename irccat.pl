@@ -55,7 +55,7 @@ unless ($options{debug}) {
     setsid();
 }
 ### END INIT
-syswrite($irc, "USER $options{username} 8 * :MiGNUBot IRC Bot newipc 3\n");
+syswrite($irc, "USER $options{username} 8 * :MiGNUBot\n");
 syswrite($irc, "NICK $options{nickname}\n");
 
 sub broadcast {
@@ -77,7 +77,7 @@ until ($SIG{INT}) {
             die "$! ($@)" unless (defined $read);
             die "$! ($@)" unless ($read);
             syswrite($irc, "PONG :$1\n") if ($line =~ /PING :([\w\.]+)/);
-            syswrite($irc, "NOTICE $1 :\001VERSION MiGNUBot:git:GNU/Linux Source: https://github.com/shadertest/mignubot\001\n")
+            syswrite($irc, "NOTICE $1 :\001VERSION irccat 9999 GNU/Linux || Source:  https://github.com/shadertest/mignubot\001\n")
                 if ($line =~ /:(.+)!.+PRIVMSG.+:\001VERSION\001/);
             
             broadcast($line);
