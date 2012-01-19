@@ -56,7 +56,7 @@ sub getTitle {
     my $type = $curl->getinfo(CURLINFO_CONTENT_TYPE);
     my $size = $curl->getinfo(CURLINFO_CONTENT_LENGTH_DOWNLOAD);
 
-    if ( $type =~ m/text\/html/ and $size < 6291456 ) {
+    if ( $type =~ m/^text\/html/ and $size < 6291456 ) {
         my $body;
         $curl->setopt( CURLOPT_HTTPGET,   1 );        # now we GET
         $curl->setopt( CURLOPT_WRITEDATA, \$body );
@@ -64,13 +64,12 @@ sub getTitle {
         return "curl returned $retcode (" . $curl->strerror($retcode) . ")"
           unless ( $retcode == 0 or $retcode == 6 );
         my $parser = new HTML::HeadParser;
+        $parser->utf8_mode(1);
         $parser->parse($body);
         my $title = $parser->header('Title');
         $title =~ s/\R/ /gmi;
         return "[\0033URI\003] $title";
     }
-
-    # return undef unless ($length);
     $size = convertBytes($size);
     return "[\0033URI\003] \'$type\' $size";
 }
@@ -81,7 +80,6 @@ sub getTitles {
         s/^://;
         if (/https?:\/\//) {
             my $title = &getTitle($_);
-            $title = encode( "utf8", $title );
             syswrite( $socket, "PRIVMSG $channel :$title\n" ) if ($title);
         }
     }
