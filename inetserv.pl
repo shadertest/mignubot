@@ -75,10 +75,10 @@ until ( $SIG{INT} ) {
     die unless ($read);
     if (/PRIVMSG (\S+)/) {
         my $channel = $1;
-        if (/,me(tar)? (\w+)/) {
+        if (/,me (\w+)/) {
             syswrite( $socket, "PRIVMSG $channel :" . &metar($2) . "\n" );
         }
-        elsif (/,we(ather)? (.+)/) {
+        elsif (/,w[ex] (.+)/) {
             syswrite( $socket, "PRIVMSG $channel :" . &weather($2) . "\n" );
         }
     }
