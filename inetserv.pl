@@ -76,10 +76,10 @@ until ( $SIG{INT} ) {
     if (/PRIVMSG (\S+)/) {
         my $channel = $1;
         if (/,me (\w+)/) {
-            syswrite( $socket, "PRIVMSG $channel :" . &metar($2) . "\n" );
+            syswrite( $socket, "PRIVMSG $channel :" . &metar($1) . "\n" );
         }
         elsif (/,w[ex] (.+)/) {
-            syswrite( $socket, "PRIVMSG $channel :" . &weather($2) . "\n" );
+            syswrite( $socket, "PRIVMSG $channel :" . &weather($1) . "\n" );
         }
     }
 }
