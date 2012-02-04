@@ -1,4 +1,20 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
+
+# uriserv.pl - get the title from a uri
+# Copyright (C) 2011-2012 shadertest <shadertest@shadertest.ca>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use warnings;
 use strict;
@@ -7,7 +23,6 @@ use diagnostics;
 
 use POSIX qw(setsid);
 use IO::Socket::UNIX;
-use Encode;
 
 use HTML::HeadParser;
 use WWW::Curl::Easy;
@@ -22,6 +37,8 @@ my $socket = new IO::Socket::UNIX(
 );
 
 sub convertBytes {
+
+    # convert bytes to kilobytes or megabytes
     my ($bytes) = @_;
     if ( $bytes > 1048576 ) {
         return sprintf( "%.2f MiB", $bytes / 1048576 );
@@ -35,6 +52,8 @@ sub convertBytes {
 }
 
 sub getTitle {
+
+    # get the title for $uri
     my $uri = shift;
     $uri =~ s/(\x03(?:\d{1,2}(?:,\d{1,2})?)?|\x02|\x1f|\x0f|\x16)//g;
     my $curl = new WWW::Curl::Easy;
@@ -76,12 +95,10 @@ sub getTitle {
 
 sub getTitles {
     my $channel = shift;
-    for (@_) {
-        s/^://;
-        if (/https?:\/\//) {
-            my $title = &getTitle($_);
-            syswrite( $socket, "PRIVMSG $channel :$title\n" ) if ($title);
-        }
+    my @uris = grep( /https?:\/\//, @_ );
+    for (@uris) {
+        my $title = &getTitle($_);
+        syswrite( $socket, "PRIVMSG $channel :$title\n" ) if ($title);
     }
 }
 
@@ -99,8 +116,9 @@ until ( $SIG{INT} ) {
     my $read = sysread( $socket, $_, 1024 );
     die unless ( defined $read );
     die unless ($read);
-    if (/PRIVMSG (\S+)/) {
-        &getTitles( $1, split );
+    s/\R//;
+    if (/^:\S+ PRIVMSG (.+) :(.+)/) {
+        &getTitles( $1, split( / +/, $2 ) );
     }
 }
 
